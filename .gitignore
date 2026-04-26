@@ -220,3 +220,7 @@ __marimo__/
 # Other
 .claude
 .venv
+
+# AutoDocx generated artifacts and editor locks
+/output.docx
+.~lock.*#

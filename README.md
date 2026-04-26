@@ -74,48 +74,53 @@ autodocx \
 
 ### Config-driven
 
-Drop a TOML file describing the build:
+Drop a TOML file describing the build. The example shipped at the repo
+root (`autodocx.toml`) renders the sample document under `markdown/` +
+`pictures/` + `docx/` against the supplied template:
 
 ```toml
 # autodocx.toml
 [project]
 template = "docx/template.docx"
-header = "docx/header.docx"
 output = "output.docx"
 pictures = "pictures"
 
 [input]
 files = [
+    "markdown/abstract.md",
+    "markdown/table_of_contents.md",
+    "markdown/definitions.md",
     "markdown/intro.md",
     "markdown/1.md",
-    "markdown/2.md",
-    "markdown/3.md",
-    "markdown/4.md",
-    "markdown/5.md",
-    "markdown/6.md",
     "markdown/conclusion.md",
 ]
-bibliography = "markdown/reference.bib"
 
 [render]
 # Headings rendered as bold-centered BodyText (skipping Heading2 numbering)
 title_pages = ["РЕФЕРАТ", "ABSTRACT", "СОДЕРЖАНИЕ"]
 # Headings rendered as Heading2 + centered, no numbering
 centered_headings = [
-    "ВВЕДЕНИЕ",
-    "ЗАКЛЮЧЕНИЕ",
-    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ",
+    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ (заголовок второго уровня)",
+    "ВВЕДЕНИЕ (заголовок второго уровня)",
+    "ЗАКЛЮЧЕНИЕ (заголовок второго уровня)",
     "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
 ]
 references_heading = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
-figure_label = "Рисунок"
-table_label = "Таблица"
 
 [stats]
-manual_pages = 50
+manual_pages = 10
 ```
 
-Then:
+Optional fields not shown:
+
+- `[project] header = "docx/header.docx"` — title-page document prepended
+  to the output.
+- `[input] bibliography = "markdown/reference.bib"` — BibTeX file used to
+  resolve `[@key]` citations.
+- `[render] figure_label`, `table_label` — caption prefixes (default
+  `Рисунок` / `Таблица`).
+
+Build it:
 
 ```fish
 autodocx --config autodocx.toml
@@ -123,6 +128,9 @@ autodocx --config autodocx.toml
 
 CLI flags (`--template`, `--output`, `--bib`, …) override values loaded
 from the TOML file.
+
+After building, open `output.docx` in Word or LibreOffice and press
+`Ctrl+A` then `F9` to refresh the TOC and page numbers.
 
 ## Markdown conventions
 
@@ -143,27 +151,6 @@ from the TOML file.
 | `<!-- toc -->`                      | auto-updating TOC field                            |
 | `<!-- references -->`               | (reserved; references are appended automatically)  |
 | `{{n_pages}}` / `{{n_figures}}` …   | substituted with computed counts before parsing    |
-
-## Reproducing the legacy VKR pipeline
-
-The original `build_docx.py` produced a Russian-language thesis with a
-fixed file list and hardcoded section names. To reproduce that output:
-
-1. Place `intro.md` / `1.md` … `6.md` / `conclusion.md` in `markdown/`.
-2. Place images in `pictures/`.
-3. Place `template.docx` (and optional `header.docx`) in `docx/`.
-4. Use the `autodocx.toml` shown above.
-5. In `intro.md`, replace the hand-typed stats line with the templated
-   form:
-
-   ```
-   Пояснительная записка {{n_pages}} стр., {{n_figures}} рис., {{n_tables}} табл., {{n_sources}} ист.
-   ```
-
-6. Run `autodocx --config autodocx.toml`.
-
-The output should match the legacy build (open in Word/LibreOffice and
-press `Ctrl+A` then `F9` to refresh the TOC and page numbers).
 
 ## License
 

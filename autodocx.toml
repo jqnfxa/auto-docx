@@ -1,0 +1,27 @@
+[project]
+template = "docx/template.docx"
+output = "output.docx"
+pictures = "pictures"
+
+[input]
+files = [
+    "markdown/abstract.md",
+    "markdown/table_of_contents.md",
+    "markdown/definitions.md",
+    "markdown/intro.md",
+    "markdown/1.md",
+    "markdown/conclusion.md",
+]
+
+[render]
+title_pages = ["РЕФЕРАТ", "ABSTRACT", "СОДЕРЖАНИЕ"]
+centered_headings = [
+    "ОПРЕДЕЛЕНИЯ, ОБОЗНАЧЕНИЯ И СОКРАЩЕНИЯ (заголовок второго уровня)",
+    "ВВЕДЕНИЕ (заголовок второго уровня)",
+    "ЗАКЛЮЧЕНИЕ (заголовок второго уровня)",
+    "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
+]
+references_heading = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
+
+[stats]
+manual_pages = 10
