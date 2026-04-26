@@ -95,11 +95,45 @@ def _parse_bib(path: Path) -> dict[str, str]:
     return entries
 
 
+def _split_authors(author: str) -> list[str]:
+    """Split a BibTeX ``author`` field on `` and `` into individual authors."""
+    return [a.strip() for a in author.split(" and ") if a.strip()]
+
+
+def _surname_first_list(author: str) -> str:
+    """Render authors as ``Surname, Initials, Surname, Initials`` (GOST opener)."""
+    return ", ".join(_split_authors(author))
+
+
+def _initials_first_list(author: str) -> str:
+    """Render authors as ``Initials Surname, Initials Surname`` (GOST after ``/``)."""
+    out: list[str] = []
+    for a in _split_authors(author):
+        if "," in a:
+            surname, initials = (p.strip() for p in a.split(",", 1))
+            out.append(f"{initials} {surname}" if initials else surname)
+        else:
+            out.append(a)
+    return ", ".join(out)
+
+
+def _format_urldate(value: str) -> str:
+    """Convert ``YYYY-MM-DD`` (or ``YYYY/MM/DD``) to ``DD.MM.YYYY``.
+
+    Returns the input unchanged if it doesn't match the expected shape so
+    pre-formatted dates pass through.
+    """
+    m = re.match(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$", value.strip())
+    if not m:
+        return value
+    y, mo, d = m.groups()
+    return f"{int(d):02d}.{int(mo):02d}.{y}"
+
+
 def _format_entry(entry_type: str, f: dict[str, str]) -> str:
     """Format a bib entry as a GOST-flavored reference string.
 
-    Covers the subset of types the original pipeline produced
-    (book / article / online / manual). Falls back to a generic
+    Supports book / article / online / manual; falls back to a generic
     ``Author. Title. Year`` form for anything else.
     """
     author = f.get("author", "")
@@ -108,12 +142,14 @@ def _format_entry(entry_type: str, f: dict[str, str]) -> str:
     publisher = f.get("publisher", "")
     journal = f.get("journal", "")
     volume = f.get("volume", "")
+    number = f.get("number", "")
     pages = f.get("pages", "")
     url = f.get("url", "")
+    urldate = f.get("urldate", "")
     pagetotal = f.get("pagetotal", "")
 
     if entry_type == "book":
-        out = f"{author}. {title}"
+        out = f"{_surname_first_list(author)}. {title}" if author else title
         if publisher:
             out += f" — {publisher}"
         if year:
@@ -123,22 +159,33 @@ def _format_entry(entry_type: str, f: dict[str, str]) -> str:
         return out
 
     if entry_type == "article":
-        out = f"{author}. {title}"
+        # GOST: "Surname, Initials, Surname, Initials, Title /
+        #        Initials Surname, Initials Surname //
+        #        Journal. – Year. – № N. – С. pages."
+        surnames = _surname_first_list(author)
+        initials = _initials_first_list(author)
+        out = f"{surnames}, {title}" if surnames else title
+        if initials:
+            out += f" / {initials}"
         if journal:
             out += f" // {journal}"
-        if volume:
-            out += f". — Vol. {volume}"
         if year:
-            out += f", {year}"
+            out += f". – {year}"
+        if volume:
+            out += f". – Т. {volume}"
+        if number:
+            out += f". – № {number}"
         if pages:
-            out += f". — P. {pages}"
-        return out
+            out += f". – С. {pages}"
+        return out + "."
 
     if entry_type == "online":
         out = title
         if url:
             out += f" [Электронный ресурс]. URL: {url}"
-        return out
+        if urldate:
+            out += f" (дата обращения: {_format_urldate(urldate)})"
+        return out + "."
 
     if entry_type == "manual":
         out = title
@@ -148,4 +195,5 @@ def _format_entry(entry_type: str, f: dict[str, str]) -> str:
             out += f", {year}"
         return out
 
-    return f"{author}. {title}. {year}".strip(". ")
+    base = ". ".join(p for p in (_surname_first_list(author), title, year) if p)
+    return base.strip(". ")
