@@ -35,6 +35,10 @@ class RenderContext:
     title_pages: frozenset[str] = frozenset()
     centered_headings: frozenset[str] = frozenset()
     figure_label: str = "Рисунок"
+    references_label: str = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
+    # Set to True after a `<!-- references -->` marker is rendered, so the
+    # pipeline can skip its auto-append fallback.
+    references_rendered: bool = False
 
     def is_title_page(self, heading: str) -> bool:
         return heading.strip() in self.title_pages
@@ -42,6 +46,24 @@ class RenderContext:
     def is_centered(self, heading: str) -> bool:
         h = heading.strip()
         return h in self.title_pages or h in self.centered_headings
+
+
+def build_references_section(
+    citer: CitationResolver,
+    label: str,
+) -> list[ET.Element]:
+    """Return the centered Heading2 + numbered entries for a references section."""
+    out: list[ET.Element] = [
+        make_paragraph(
+            "Heading2",
+            [make_run(label, bold=True)],
+            page_break=True,
+            center=True,
+        )
+    ]
+    for num, ref_text in citer.get_reference_list():
+        out.append(make_paragraph("BodyText", [make_run(f"{num}. {ref_text}")]))
+    return out
 
 
 def render_blocks(
@@ -102,9 +124,15 @@ def render_blocks(
         elif kind == "toc_marker":
             elements.append(build_toc_sdt())
         elif kind == "references_marker":
-            # The pipeline appends the references section unconditionally
-            # when a .bib is supplied, so this marker is currently a no-op.
-            pass
+            if (
+                not ctx.references_rendered
+                and ctx.citer is not None
+                and ctx.citer.cited_keys
+            ):
+                elements.extend(
+                    build_references_section(ctx.citer, ctx.references_label)
+                )
+                ctx.references_rendered = True
 
     return elements
 
