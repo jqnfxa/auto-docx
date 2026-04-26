@@ -106,10 +106,14 @@ files = [
     "markdown/intro.md",
     "markdown/1.md",
     "markdown/conclusion.md",
+    "markdown/appendix_a.md",
 ]
 # Optional: BibTeX file resolving every `[@key]` cited in the markdown.
 # Cited entries are auto-numbered in citation order and rendered into
-# the СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section at end of document.
+# the СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section. By default that section
+# lands at the end of the document; place a `<!-- references -->`
+# marker in any markdown file to pin it somewhere specific (e.g. before
+# an appendix — see markdown/appendix_a.md for the worked example).
 bibliography = "markdown/reference.bib"
 
 [render]
@@ -166,16 +170,25 @@ After building, open `output.docx` in Word or LibreOffice and press
 | `[@key]` / `[@k1; @k2]` / `[@k, p. 84]` | citation(s) resolved against the bib (`[N]`, `[N, с. 84]`) |
 | `$x$`, `$$x$$`                      | OMML formula (requires `pandoc`)                   |
 | `<!-- toc -->`                      | auto-updating TOC field                            |
-| `<!-- references -->`               | (reserved; references are appended automatically)  |
+| `<!-- references -->`               | render the references section here (otherwise auto-appended at end) |
 | `{{n_pages}}` / `{{n_figures}}` …   | substituted with computed counts before parsing    |
 
 ## Bibliography
 
 When `[input] bibliography` points at a `.bib` file, every `[@key]` in
 the markdown is replaced with `[N]` (numbered in citation order) and a
-СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section is appended that lists every
-*cited* key (uncited entries don't render). Supported entry types and
-the fields each one consumes:
+СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section that lists every *cited* key
+(uncited entries don't render) is rendered into the document.
+
+By default the section is appended at the end. To pin it somewhere
+specific — for instance, before an appendix — drop a
+`<!-- references -->` marker on its own line and the section will
+render in place there instead. The shipped example does exactly this:
+[`markdown/appendix_a.md`](markdown/appendix_a.md) puts the marker
+above its `# ПРИЛОЖЕНИЕ А` heading so the references land between
+ЗАКЛЮЧЕНИЕ and the appendix.
+
+Supported entry types and the fields each one consumes:
 
 | `@type`    | Fields used                                                      | Output shape                                                                                  |
 | ---------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

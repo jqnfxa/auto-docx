@@ -12,6 +12,7 @@ files = [
     "markdown/intro.md",
     "markdown/1.md",
     "markdown/conclusion.md",
+    "markdown/appendix_a.md",
 ]
 bibliography = "markdown/reference.bib"
 
