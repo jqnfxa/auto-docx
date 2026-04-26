@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autodocx"
+version = "0.1.0"
+description = "Render Markdown into a styled .docx using a Word template."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [{ name = "AutoDocx contributors" }]
+keywords = ["markdown", "docx", "pandoc", "word", "template"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Office/Business",
+]
+dependencies = [
+    "Pillow>=10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+autodocx = "autodocx.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jqnfxa/AutoDocx"
+Issues = "https://github.com/jqnfxa/AutoDocx/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autodocx"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/autodocx",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
