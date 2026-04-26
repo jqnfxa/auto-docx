@@ -18,6 +18,10 @@ from autodocx.toc import build_toc_sdt
 
 _RE_NUMBERED_ITEM = re.compile(r"^(\d+\.\s+)(.*)$", re.DOTALL)
 
+# Per template: each list level adds 1.25 cm (≈ 709 twips) to the left indent.
+BULLET_INDENT_PER_LEVEL_TWIPS = 709
+BULLET_MARKERS = ("•", "○", "▪", "·")
+
 
 @dataclass
 class RenderContext:
@@ -30,7 +34,6 @@ class RenderContext:
     fig_counter: list[int] = field(default_factory=lambda: [1])
     title_pages: frozenset[str] = frozenset()
     centered_headings: frozenset[str] = frozenset()
-    toc_heading: str | None = None
     figure_label: str = "Рисунок"
 
     def is_title_page(self, heading: str) -> bool:
@@ -39,9 +42,6 @@ class RenderContext:
     def is_centered(self, heading: str) -> bool:
         h = heading.strip()
         return h in self.title_pages or h in self.centered_headings
-
-    def is_toc_heading(self, heading: str) -> bool:
-        return self.toc_heading is not None and heading.strip() == self.toc_heading
 
 
 def render_blocks(
@@ -60,7 +60,6 @@ def render_blocks(
     """
     elements: list[ET.Element] = []
     seen_h2 = False
-    swallow_until_next_heading = False
 
     for kind, data in blocks:
         if kind == "heading2":
@@ -68,23 +67,17 @@ def render_blocks(
                 page_break_each_heading and (seen_h2 or page_break_first_heading)
             )
             seen_h2 = True
-            swallow_until_next_heading = False
             elements.append(_render_heading2(data, ctx, page_break))
-            if ctx.is_toc_heading(data):
-                # Replace any body content for this section with the TOC field.
-                elements.append(build_toc_sdt())
-                swallow_until_next_heading = True
-            continue
-
-        if swallow_until_next_heading:
             continue
 
         if kind == "heading3":
             elements.append(make_paragraph("Heading3", [make_run(data, bold=True)]))
+        elif kind == "heading4":
+            elements.append(make_paragraph("Heading4", [make_run(data, bold=True)]))
         elif kind == "paragraph":
             elements.extend(_render_text("BodyText", data, ctx))
         elif kind == "bullet":
-            elements.extend(_render_text("BodyText", "–  " + data, ctx))
+            elements.append(_render_bullet(data, ctx))
         elif kind == "list_item":
             elements.extend(_render_list_item(data, ctx))
         elif kind == "table_caption":
@@ -109,8 +102,8 @@ def render_blocks(
         elif kind == "toc_marker":
             elements.append(build_toc_sdt())
         elif kind == "references_marker":
-            # Handled by the pipeline; emit nothing here so the marker is a no-op
-            # if the pipeline didn't pre-process it.
+            # The pipeline appends the references section unconditionally
+            # when a .bib is supplied, so this marker is currently a no-op.
             pass
 
     return elements
@@ -206,12 +199,30 @@ def _render_list_item(data: str, ctx: RenderContext) -> list[ET.Element]:
     return [make_paragraph("BodyText", parse_inline(prefix + rest))]
 
 
+def _render_bullet(data: tuple[int, str], ctx: RenderContext) -> ET.Element:
+    """Render a bullet item at the given nesting level.
+
+    Each level adds 1.25 cm of left margin and rotates through ``•``/``○``/``▪``
+    markers, matching the template's three-level bullet convention.
+    """
+    level, text = data
+    marker = BULLET_MARKERS[level % len(BULLET_MARKERS)]
+    indent = (level + 1) * BULLET_INDENT_PER_LEVEL_TWIPS
+    body = parse_inline(f"{marker}  {_resolve(text, ctx)}")
+    return make_paragraph(
+        "BodyText",
+        body,
+        ind_left=indent,
+        ind_first_line=0,
+    )
+
+
 def _render_image(data: tuple[str, str], ctx: RenderContext) -> list[ET.Element]:
     img_path, caption = data
     candidate = ctx.pictures_dir / img_path
     full_path = candidate if candidate.exists() else Path(img_path)
     elements = [make_image_paragraph(full_path, ctx.images)]
-    cap_text = f"{ctx.figure_label} {ctx.fig_counter[0]} — {caption}"
+    cap_text = f"{ctx.figure_label} {ctx.fig_counter[0]} – {caption}"
     elements.extend(_render_text("Style15", cap_text, ctx, align="center"))
     ctx.fig_counter[0] += 1
     return elements

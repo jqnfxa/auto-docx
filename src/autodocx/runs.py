@@ -47,11 +47,19 @@ def make_paragraph(
     page_break: bool = False,
     center: bool = False,
     align: str | None = None,
+    ind_left: int | None = None,
+    ind_first_line: int | None = None,
 ) -> ET.Element:
-    """Build a w:p paragraph with the given style and optional alignment."""
+    """Build a w:p paragraph with the given style and optional alignment.
+
+    ``ind_left`` / ``ind_first_line`` (twips) override any indent inherited
+    from the style or computed from ``center``/``align``.
+    """
     p = ET.Element(w_tag("p"))
     ppr = ET.SubElement(p, w_tag("pPr"))
     ET.SubElement(ppr, w_tag("pStyle")).set(w_tag("val"), style_id)
+
+    explicit_ind = ind_left is not None or ind_first_line is not None
 
     if style_id in _HEADING_STYLES:
         # Disable inherited auto-numbering and override the hanging indent
@@ -59,9 +67,10 @@ def make_paragraph(
         numpr = ET.SubElement(ppr, w_tag("numPr"))
         ET.SubElement(numpr, w_tag("ilvl")).set(w_tag("val"), "0")
         ET.SubElement(numpr, w_tag("numId")).set(w_tag("val"), "0")
-        ind = ET.SubElement(ppr, w_tag("ind"))
-        ind.set(w_tag("left"), "0")
-        ind.set(w_tag("firstLine"), "0" if center else "720")
+        if not explicit_ind:
+            ind = ET.SubElement(ppr, w_tag("ind"))
+            ind.set(w_tag("left"), "0")
+            ind.set(w_tag("firstLine"), "0" if center else "720")
 
     if page_break:
         ET.SubElement(ppr, w_tag("pageBreakBefore"))
@@ -70,11 +79,14 @@ def make_paragraph(
     if effective_align is not None:
         ET.SubElement(ppr, w_tag("jc")).set(w_tag("val"), effective_align)
 
-    needs_zero_indent = (
+    if explicit_ind:
+        ind = ET.SubElement(ppr, w_tag("ind"))
+        ind.set(w_tag("left"), str(ind_left if ind_left is not None else 0))
+        ind.set(w_tag("firstLine"), str(ind_first_line if ind_first_line is not None else 0))
+    elif (
         style_id not in _HEADING_STYLES
         and (center or align in ("center", "left"))
-    )
-    if needs_zero_indent:
+    ):
         ind = ET.SubElement(ppr, w_tag("ind"))
         ind.set(w_tag("left"), "0")
         ind.set(w_tag("firstLine"), "0")
