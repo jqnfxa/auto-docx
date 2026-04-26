@@ -52,7 +52,18 @@ For local development:
 ```fish
 uv venv
 uv pip install -e ".[dev]"
+.venv/bin/pytest          # run the test suite
+.venv/bin/ruff check src/ tests/   # lint
 ```
+
+The test suite uses `pytest` and is split into pure-logic units
+([`tests/test_parser.py`](tests/test_parser.py),
+[`tests/test_citations.py`](tests/test_citations.py),
+[`tests/test_runs.py`](tests/test_runs.py),
+[`tests/test_renderer.py`](tests/test_renderer.py),
+[`tests/test_tables.py`](tests/test_tables.py)) plus an end-to-end
+integration test that builds the shipped `autodocx.toml` sample and
+checks the resulting `.docx` ([`tests/test_pipeline.py`](tests/test_pipeline.py)).
 
 ## Project layout
 

@@ -48,10 +48,14 @@ include = [
     "pyproject.toml",
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-src = ["src"]
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -90,6 +94,16 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "src/autodocx/__init__.py" = ["F401"]  # re-exports
+# Tests are allowed to use assert, magic numbers, plain naming, etc.
+"tests/**" = [
+    "S101",       # assert in tests is fine
+    "PLR2004",    # magic numbers in test data
+    "ANN",        # type-annotation rigor isn't worth it for tests
+    "D",          # no docstrings on test funcs
+    "INP001",     # tests/ doesn't need __init__.py
+    "SLF001",     # tests poke at private helpers
+    "PT011",      # broad pytest.raises is fine in unit tests
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
