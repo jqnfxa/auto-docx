@@ -111,8 +111,6 @@ def render_blocks(
 
 def _render_heading2(text: str, ctx: RenderContext, page_break: bool) -> ET.Element:
     if ctx.is_title_page(text):
-        # Render as bold-centered BodyText so external "numbered heading"
-        # validators don't choke on title-page headings like "ABSTRACT".
         return make_paragraph(
             "BodyText",
             [make_run(text, bold=True)],

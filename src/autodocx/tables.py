@@ -7,10 +7,8 @@ import xml.etree.ElementTree as ET
 from autodocx.ns import w_tag
 from autodocx.runs import make_run
 
-# Table-cell style from the original VKR template; users can override if their
-# template doesn't define it (cells will fall back to default formatting).
 DEFAULT_CELL_STYLE = "Style13"
-DEFAULT_TABLE_WIDTH = 9000  # twentieths of a point (~6.25 inches)
+DEFAULT_TABLE_WIDTH = 9000  # ~6.25 inches
 
 
 def _split_cells(line: str) -> list[str]:

@@ -25,8 +25,6 @@ _RE_HEADING2 = re.compile(r"^# (?!#)(.*)$")
 _RE_HEADING3 = re.compile(r"^## (?!#)(.*)$")
 _RE_HEADING4 = re.compile(r"^### (.*)$")
 _RE_LIST_ITEM = re.compile(r"^(\d+)\.\s+(.*)$")
-# Per CommonMark, only an ordered list starting at "1." interrupts a paragraph;
-# numbers like "12." appearing mid-sentence (e.g. "размера шрифта 12.") must not.
 _RE_LIST_ITEM_PARAGRAPH_BREAKER = re.compile(r"^1\.\s+")
 _RE_IMAGE = re.compile(r"^!\[(.*?)\]\(([^)]+)\)(?:\{[^}]*\})?\s*$")
 _RE_CONTINUATION = re.compile(r"^продолжение таблицы\s", re.IGNORECASE)
@@ -35,8 +33,8 @@ _RE_TABLE_SEP_CELL = re.compile(r"^:?-{2,}:?$")
 
 INDENT_SPACES_PER_LEVEL = 2
 
-# Configurable label prefixes for figure/table captions. Russian defaults
-# match the original VKR pipeline; pass overrides via parse_md if needed.
+# Configurable label prefixes for figure/table captions. 
+# Pass overrides via parse_md if needed.
 DEFAULT_TABLE_LABEL = "Таблица"
 DEFAULT_FIGURE_LABEL = "Рисунок"
 
