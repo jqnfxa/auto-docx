@@ -34,8 +34,7 @@ class BuildConfig:
     title_pages: list[str] = field(default_factory=list)
     centered_headings: list[str] = field(default_factory=list)
 
-    # Auto-content markers.
-    toc_heading: str | None = None
+    # Heading used for the auto-appended bibliography section.
     references_heading: str | None = None
     references_label: str = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
 
@@ -79,7 +78,6 @@ class BuildConfig:
             base_dir=base,
             title_pages=list(render.get("title_pages", [])),
             centered_headings=list(render.get("centered_headings", [])),
-            toc_heading=render.get("toc_heading"),
             references_heading=render.get("references_heading"),
             references_label=render.get(
                 "references_label", "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"

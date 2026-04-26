@@ -55,7 +55,6 @@ def build_document(config: BuildConfig) -> Path:
         formulas=formulas,
         title_pages=config.title_page_set,
         centered_headings=config.centered_heading_set,
-        toc_heading=config.toc_heading,
         figure_label=config.figure_label,
     )
 
