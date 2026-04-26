@@ -7,6 +7,14 @@ LaTeX math through `pandoc`, embeds images and tables, then splices the
 result into the body of a `.docx` template — preserving styles, headers,
 fonts and section properties from the template.
 
+> [!WARNING]
+> AutoDocx is not a silver bullet. Some formatting rules — exotic style
+> overrides, hand-tuned table layouts, edge-case list nesting, page
+> breaks driven by content height — won't be resolved exactly. **Always
+> open the generated `.docx` and verify the result manually** before
+> handing it in. Treat the tool as a fast first pass, not as the final
+> typesetter.
+
 ## Features
 
 - Markdown headings (`#`/`##`/`###`) → `Heading2` / `Heading3` / `Heading4`
