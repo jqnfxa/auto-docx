@@ -3,8 +3,9 @@
 Each block is a tuple ``(kind, data)`` consumed by :mod:`autodocx.renderer`:
 
 - ``("heading2", text)`` / ``("heading3", text)``
-- ``("paragraph", text)`` / ``("bullet", text)`` / ``("list_item", text)``
-- ``("table", lines)`` — raw markdown table lines
+- ``("paragraph", text)`` / ``("list_item", text)``
+- ``("bullet", (level, text))`` — level is 0 for top-level, 1 for nested, …
+- ``("table", lines)`` — raw markdown table lines (with or without outer pipes)
 - ``("table_caption", text)`` / ``("continuation_caption", text)``
 - ``("figure_caption", text)``
 - ``("image", (path, caption))``
@@ -21,12 +22,18 @@ from typing import Any
 Block = tuple[str, Any]
 
 _RE_HEADING2 = re.compile(r"^# (?!#)(.*)$")
-_RE_HEADING3 = re.compile(r"^## (.*)$")
+_RE_HEADING3 = re.compile(r"^## (?!#)(.*)$")
+_RE_HEADING4 = re.compile(r"^### (.*)$")
 _RE_LIST_ITEM = re.compile(r"^(\d+)\.\s+(.*)$")
+# Per CommonMark, only an ordered list starting at "1." interrupts a paragraph;
+# numbers like "12." appearing mid-sentence (e.g. "размера шрифта 12.") must not.
+_RE_LIST_ITEM_PARAGRAPH_BREAKER = re.compile(r"^1\.\s+")
 _RE_IMAGE = re.compile(r"^!\[(.*?)\]\(([^)]+)\)(?:\{[^}]*\})?\s*$")
 _RE_CONTINUATION = re.compile(r"^продолжение таблицы\s", re.IGNORECASE)
-_RE_TABLE_LINE = re.compile(r"^\|")
-_RE_BULLET = re.compile(r"^- (.*)$")
+_RE_BULLET = re.compile(r"^([ \t]*)[-*]\s+(.*)$")
+_RE_TABLE_SEP_CELL = re.compile(r"^:?-{2,}:?$")
+
+INDENT_SPACES_PER_LEVEL = 2
 
 # Configurable label prefixes for figure/table captions. Russian defaults
 # match the original VKR pipeline; pass overrides via parse_md if needed.
@@ -74,6 +81,11 @@ def parse_md_text(
             i += 1
             continue
 
+        if (m := _RE_HEADING4.match(line)) is not None:
+            blocks.append(("heading4", m.group(1).strip()))
+            i += 1
+            continue
+
         if (m := _RE_HEADING3.match(line)) is not None:
             blocks.append(("heading3", m.group(1).strip()))
             i += 1
@@ -84,11 +96,8 @@ def parse_md_text(
             i += 1
             continue
 
-        if _RE_TABLE_LINE.match(line):
-            tlines: list[str] = []
-            while i < len(lines) and _RE_TABLE_LINE.match(lines[i].strip()):
-                tlines.append(lines[i].strip())
-                i += 1
+        if _looks_like_table_header(lines, i):
+            tlines, i = _consume_table(lines, i)
             blocks.append(("table", tlines))
             continue
 
@@ -118,8 +127,9 @@ def parse_md_text(
             i += 1
             continue
 
-        if (m := _RE_BULLET.match(stripped)) is not None:
-            blocks.append(("bullet", m.group(1)))
+        if (m := _RE_BULLET.match(line)) is not None:
+            level = _indent_level(m.group(1))
+            blocks.append(("bullet", (level, m.group(2))))
             i += 1
             continue
 
@@ -127,14 +137,71 @@ def parse_md_text(
         plines = [stripped]
         i += 1
         while i < len(lines):
-            nxt = lines[i].strip()
-            if not nxt or breakers.matches(nxt):
+            nxt_line = lines[i]
+            nxt = nxt_line.strip()
+            if (
+                not nxt
+                or breakers.matches(nxt)
+                or _RE_BULLET.match(nxt_line) is not None
+                or _looks_like_table_header(lines, i)
+            ):
                 break
             plines.append(nxt)
             i += 1
         blocks.append(("paragraph", " ".join(plines)))
 
     return blocks
+
+
+def _indent_level(prefix: str) -> int:
+    """Translate leading whitespace into a 0-based nesting level."""
+    width = 0
+    for ch in prefix:
+        width += INDENT_SPACES_PER_LEVEL if ch == "\t" else 1
+    return width // INDENT_SPACES_PER_LEVEL
+
+
+def _is_table_separator(line: str) -> bool:
+    """Return True if ``line`` is a markdown table-separator row.
+
+    Accepts both bordered (``|---|---|``) and bare (``--- | ---``) styles,
+    plus alignment colons (``:---``, ``---:``, ``:---:``).
+    """
+    s = line.strip()
+    if not s:
+        return False
+    s = s.strip("|").strip()
+    if not s:
+        return False
+    return all(_RE_TABLE_SEP_CELL.match(p.strip()) for p in s.split("|"))
+
+
+def _looks_like_table_header(lines: list[str], i: int) -> bool:
+    """Treat line ``i`` as a table header when the next line is a separator."""
+    if i + 1 >= len(lines):
+        return False
+    if "|" not in lines[i]:
+        return False
+    return _is_table_separator(lines[i + 1])
+
+
+def _consume_table(lines: list[str], i: int) -> tuple[list[str], int]:
+    """Collect header + separator + body rows starting at ``i``."""
+    out: list[str] = []
+    # header
+    out.append(lines[i].strip())
+    i += 1
+    # separator
+    out.append(lines[i].strip())
+    i += 1
+    # body rows: any non-blank line that still contains '|'
+    while i < len(lines):
+        s = lines[i].strip()
+        if not s or "|" not in s:
+            break
+        out.append(s)
+        i += 1
+    return out, i
 
 
 class _Breakers:
@@ -151,7 +218,6 @@ class _Breakers:
             or text.startswith(self.table_label)
             or text.startswith(self.figure_label)
             or _RE_CONTINUATION.match(text) is not None
-            or _RE_LIST_ITEM.match(text) is not None
-            or text.startswith("- ")
+            or _RE_LIST_ITEM_PARAGRAPH_BREAKER.match(text) is not None
             or text in ("<!-- toc -->", "<!-- references -->")
         )

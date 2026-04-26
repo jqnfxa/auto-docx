@@ -14,7 +14,13 @@ DEFAULT_TABLE_WIDTH = 9000  # twentieths of a point (~6.25 inches)
 
 
 def _split_cells(line: str) -> list[str]:
-    return [c.strip() for c in line.split("|")[1:-1]]
+    """Split a markdown table row, accepting both bordered and bare styles."""
+    cells = line.split("|")
+    if cells and cells[0].strip() == "":
+        cells = cells[1:]
+    if cells and cells[-1].strip() == "":
+        cells = cells[:-1]
+    return [c.strip() for c in cells]
 
 
 def _make_cell_content(text: str, formulas=None, *, bold: bool = False) -> list[ET.Element]:
