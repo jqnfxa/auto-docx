@@ -82,6 +82,11 @@ root (`autodocx.toml`) renders the sample document under `markdown/` +
 # autodocx.toml
 [project]
 template = "docx/template.docx"
+# Optional: a separate .docx whose body is prepended to the output —
+# typically a title page, signed task, or calendar plan. Its styles,
+# fonts, footers, footnotes, and embedded media are forwarded so the
+# prepended content keeps its original formatting.
+header = "docx/header.docx"
 output = "output.docx"
 pictures = "pictures"
 
@@ -111,10 +116,12 @@ references_heading = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИК
 manual_pages = 10
 ```
 
-Optional fields not shown:
+Drop `header = …` (or comment it out) if you don't want a prepended
+document. The CLI equivalent is `--header docx/header.docx`, which
+overrides the TOML value.
 
-- `[project] header = "docx/header.docx"` — title-page document prepended
-  to the output.
+Other optional fields not shown:
+
 - `[input] bibliography = "markdown/reference.bib"` — BibTeX file used to
   resolve `[@key]` citations.
 - `[render] figure_label`, `table_label` — caption prefixes (default

@@ -1,5 +1,6 @@
 [project]
 template = "docx/template.docx"
+header = "docx/header.docx"
 output = "output.docx"
 pictures = "pictures"
 
