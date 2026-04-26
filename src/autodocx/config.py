@@ -34,10 +34,6 @@ class BuildConfig:
     title_pages: list[str] = field(default_factory=list)
     centered_headings: list[str] = field(default_factory=list)
 
-    # Heading used for the auto-appended bibliography section.
-    references_heading: str | None = None
-    references_label: str = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
-
     # Caption labels (used during parsing and figure auto-numbering).
     figure_label: str = "Рисунок"
     table_label: str = "Таблица"
@@ -78,10 +74,6 @@ class BuildConfig:
             base_dir=base,
             title_pages=list(render.get("title_pages", [])),
             centered_headings=list(render.get("centered_headings", [])),
-            references_heading=render.get("references_heading"),
-            references_label=render.get(
-                "references_label", "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
-            ),
             figure_label=render.get("figure_label", "Рисунок"),
             table_label=render.get("table_label", "Таблица"),
             manual_pages=stats.get("manual_pages"),

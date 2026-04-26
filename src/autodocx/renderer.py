@@ -35,9 +35,9 @@ class RenderContext:
     title_pages: frozenset[str] = frozenset()
     centered_headings: frozenset[str] = frozenset()
     figure_label: str = "Рисунок"
-    references_label: str = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
-    # Set to True after a `<!-- references -->` marker is rendered, so the
-    # pipeline can skip its auto-append fallback.
+    # Flipped to True the first time a `<!-- references -->` marker emits
+    # the bibliography list, so the pipeline can detect "cited but not
+    # rendered" and warn.
     references_rendered: bool = False
 
     def is_title_page(self, heading: str) -> bool:
@@ -48,22 +48,17 @@ class RenderContext:
         return h in self.title_pages or h in self.centered_headings
 
 
-def build_references_section(
-    citer: CitationResolver,
-    label: str,
-) -> list[ET.Element]:
-    """Return the centered Heading2 + numbered entries for a references section."""
-    out: list[ET.Element] = [
-        make_paragraph(
-            "Heading2",
-            [make_run(label, bold=True)],
-            page_break=True,
-            center=True,
-        )
+def build_references_entries(citer: CitationResolver) -> list[ET.Element]:
+    """Return one numbered ``BodyText`` paragraph per cited bib entry.
+
+    No heading is emitted — the caller is expected to author its own
+    section heading in markdown (e.g. ``# СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ``)
+    immediately before the ``<!-- references -->`` marker.
+    """
+    return [
+        make_paragraph("BodyText", [make_run(f"{num}. {ref_text}")])
+        for num, ref_text in citer.get_reference_list()
     ]
-    for num, ref_text in citer.get_reference_list():
-        out.append(make_paragraph("BodyText", [make_run(f"{num}. {ref_text}")]))
-    return out
 
 
 def render_blocks(
@@ -129,9 +124,7 @@ def render_blocks(
                 and ctx.citer is not None
                 and ctx.citer.cited_keys
             ):
-                elements.extend(
-                    build_references_section(ctx.citer, ctx.references_label)
-                )
+                elements.extend(build_references_entries(ctx.citer))
                 ctx.references_rendered = True
 
     return elements

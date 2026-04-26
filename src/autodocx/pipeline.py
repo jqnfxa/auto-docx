@@ -14,7 +14,7 @@ from autodocx.formulas import FormulaConverter
 from autodocx.header import HeaderAssets, extract_header_body
 from autodocx.ns import CT, R_IMG, RELS, w_tag
 from autodocx.parser import parse_md_text
-from autodocx.renderer import RenderContext, build_references_section, render_blocks
+from autodocx.renderer import RenderContext, render_blocks
 
 _STATS_VARS = ("n_pages", "n_figures", "n_tables", "n_sources")
 _RE_FIGURE_LINE = re.compile(r"^!\[", re.MULTILINE)
@@ -48,9 +48,6 @@ def build_document(config: BuildConfig) -> Path:
                for p, t in raw_sources]
 
     formulas = FormulaConverter()
-    references_label = (
-        config.references_heading or config.references_label
-    )
     ctx = RenderContext(
         pictures_dir=config.pictures_dir,
         citer=citer,
@@ -58,20 +55,21 @@ def build_document(config: BuildConfig) -> Path:
         title_pages=config.title_page_set,
         centered_headings=config.centered_heading_set,
         figure_label=config.figure_label,
-        references_label=references_label,
     )
 
     body_elements = _render_all_inputs(sources, ctx, config)
 
-    # Auto-append references at end of document only when the markdown
-    # didn't pin the section with a `<!-- references -->` marker — that
-    # lets users place the СПИСОК ИСТОЧНИКОВ before an appendix instead.
     if (
         citer is not None
         and citer.cited_keys
         and not ctx.references_rendered
     ):
-        body_elements.extend(build_references_section(citer, references_label))
+        print(
+            f"WARNING: {len(citer.cited_keys)} citation(s) collected but no "
+            "<!-- references --> marker was rendered — the references list "
+            "is missing from the output. Add the marker to one of your "
+            "input files (e.g. markdown/references.md)."
+        )
 
     header_assets = (
         extract_header_body(config.header) if config.header else HeaderAssets()
