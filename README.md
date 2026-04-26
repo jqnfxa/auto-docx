@@ -106,14 +106,15 @@ files = [
     "markdown/intro.md",
     "markdown/1.md",
     "markdown/conclusion.md",
+    "markdown/references.md",  # only `<!-- references -->` — pins СПИСОК ИСТОЧНИКОВ here
     "markdown/appendix_a.md",
 ]
 # Optional: BibTeX file resolving every `[@key]` cited in the markdown.
 # Cited entries are auto-numbered in citation order and rendered into
 # the СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section. By default that section
 # lands at the end of the document; place a `<!-- references -->`
-# marker in any markdown file to pin it somewhere specific (e.g. before
-# an appendix — see markdown/appendix_a.md for the worked example).
+# marker in any markdown file (markdown/references.md in the shipped
+# sample) to pin it somewhere specific.
 bibliography = "markdown/reference.bib"
 
 [render]
@@ -182,11 +183,13 @@ the markdown is replaced with `[N]` (numbered in citation order) and a
 
 By default the section is appended at the end. To pin it somewhere
 specific — for instance, before an appendix — drop a
-`<!-- references -->` marker on its own line and the section will
-render in place there instead. The shipped example does exactly this:
-[`markdown/appendix_a.md`](markdown/appendix_a.md) puts the marker
-above its `# ПРИЛОЖЕНИЕ А` heading so the references land between
-ЗАКЛЮЧЕНИЕ and the appendix.
+`<!-- references -->` marker on its own line in any input file and
+the section will render in place there instead. The shipped sample
+keeps that marker in its own one-line file
+[`markdown/references.md`](markdown/references.md), wedged between
+[`conclusion.md`](markdown/conclusion.md) and
+[`appendix_a.md`](markdown/appendix_a.md), so the references land
+between ЗАКЛЮЧЕНИЕ and ПРИЛОЖЕНИЕ А without polluting either file.
 
 Supported entry types and the fields each one consumes:
 
