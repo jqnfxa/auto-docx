@@ -42,7 +42,7 @@ fonts and section properties from the template.
 
 ```fish
 uv venv
-uv pip install git+https://github.com/jqnfxa/AutoDocx
+uv pip install git+https://github.com/jqnfxa/auto-docx
 ```
 
 Activate the venv and run `autodocx --help`.

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "autodocx"
+name = "auto-docx"
 version = "0.1.0"
 description = "Render Markdown into a styled .docx using a Word template."
 readme = "README.md"
@@ -34,8 +34,8 @@ dev = [
 autodocx = "autodocx.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/jqnfxa/AutoDocx"
-Issues = "https://github.com/jqnfxa/AutoDocx/issues"
+Homepage = "https://github.com/jqnfxa/auto-docx"
+Issues = "https://github.com/jqnfxa/auto-docx/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autodocx"]
