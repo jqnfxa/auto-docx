@@ -99,6 +99,10 @@ files = [
     "markdown/1.md",
     "markdown/conclusion.md",
 ]
+# Optional: BibTeX file resolving every `[@key]` cited in the markdown.
+# Cited entries are auto-numbered in citation order and rendered into
+# the СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section at end of document.
+bibliography = "markdown/reference.bib"
 
 [render]
 # Headings rendered as bold-centered BodyText (skipping Heading2 numbering)
@@ -122,8 +126,6 @@ overrides the TOML value.
 
 Other optional fields not shown:
 
-- `[input] bibliography = "markdown/reference.bib"` — BibTeX file used to
-  resolve `[@key]` citations.
 - `[render] figure_label`, `table_label` — caption prefixes (default
   `Рисунок` / `Таблица`).
 
@@ -153,11 +155,34 @@ After building, open `output.docx` in Word or LibreOffice and press
 | `![caption](path)`                  | inline image + auto-numbered figure caption        |
 | `Таблица 3 — caption`               | left-aligned table caption (`Style14`)             |
 | `Рисунок 5 — caption`               | centered figure caption (`Style15`)                |
-| `[@bibkey]` / `[@key, p. 84]`       | citation resolved against `--bib`                  |
+| `[@key]` / `[@k1; @k2]` / `[@k, p. 84]` | citation(s) resolved against the bib (`[N]`, `[N, с. 84]`) |
 | `$x$`, `$$x$$`                      | OMML formula (requires `pandoc`)                   |
 | `<!-- toc -->`                      | auto-updating TOC field                            |
 | `<!-- references -->`               | (reserved; references are appended automatically)  |
 | `{{n_pages}}` / `{{n_figures}}` …   | substituted with computed counts before parsing    |
+
+## Bibliography
+
+When `[input] bibliography` points at a `.bib` file, every `[@key]` in
+the markdown is replaced with `[N]` (numbered in citation order) and a
+СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section is appended that lists every
+*cited* key (uncited entries don't render). Supported entry types and
+the fields each one consumes:
+
+| `@type`    | Fields used                                                      | Output shape                                                                                  |
+| ---------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `@article` | `author`, `title`, `journal`, `year`, `volume`, `number`, `pages`| `Surname, I.O., …, Title / I.O. Surname, … // Journal. – Year. – Т. V. – № N. – С. P-Q.`     |
+| `@book`    | `author`, `title`, `publisher`, `year`, `pagetotal`              | `Author. Title — Publisher, Year. — N с.`                                                     |
+| `@online`  | `title`, `url`, `urldate` (`YYYY-MM-DD`)                         | `Title [Электронный ресурс]. URL: … (дата обращения: DD.MM.YYYY).`                            |
+| `@manual`  | `title`, `publisher`, `year`                                     | `Title. — Publisher, Year`                                                                    |
+
+Multiple authors use BibTeX's `and` separator (`Surname, I.O. and
+Surname, I.O.`); the formatter splits on it for both the surname-first
+and the initials-first author lists in the GOST article shape.
+
+See [`markdown/reference.bib`](markdown/reference.bib) for two worked
+examples (`@online` + `@article`) cited from
+[`markdown/intro.md`](markdown/intro.md).
 
 ## License
 
