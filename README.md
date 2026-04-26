@@ -106,15 +106,17 @@ files = [
     "markdown/intro.md",
     "markdown/1.md",
     "markdown/conclusion.md",
-    "markdown/references.md",  # only `<!-- references -->` — pins СПИСОК ИСТОЧНИКОВ here
+    "markdown/references.md",  # heading + `<!-- references -->` marker
     "markdown/appendix_a.md",
 ]
 # Optional: BibTeX file resolving every `[@key]` cited in the markdown.
-# Cited entries are auto-numbered in citation order and rendered into
-# the СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section. By default that section
-# lands at the end of the document; place a `<!-- references -->`
-# marker in any markdown file (markdown/references.md in the shipped
-# sample) to pin it somewhere specific.
+# Cited entries are auto-numbered in citation order. The numbered list
+# is emitted wherever a `<!-- references -->` marker appears — author
+# the section heading yourself in markdown right above the marker, e.g.
+#     # СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ
+#     <!-- references -->
+# (see markdown/references.md). If you have citations but no marker,
+# autodocx prints a warning at build time and the list is omitted.
 bibliography = "markdown/reference.bib"
 
 [render]
@@ -171,25 +173,38 @@ After building, open `output.docx` in Word or LibreOffice and press
 | `[@key]` / `[@k1; @k2]` / `[@k, p. 84]` | citation(s) resolved against the bib (`[N]`, `[N, с. 84]`) |
 | `$x$`, `$$x$$`                      | OMML formula (requires `pandoc`)                   |
 | `<!-- toc -->`                      | auto-updating TOC field                            |
-| `<!-- references -->`               | render the references section here (otherwise auto-appended at end) |
+| `<!-- references -->`               | emit the numbered bibliography list at this point   |
 | `{{n_pages}}` / `{{n_figures}}` …   | substituted with computed counts before parsing    |
 
 ## Bibliography
 
 When `[input] bibliography` points at a `.bib` file, every `[@key]` in
-the markdown is replaced with `[N]` (numbered in citation order) and a
-СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ section that lists every *cited* key
-(uncited entries don't render) is rendered into the document.
+the markdown is replaced with `[N]` (numbered in citation order). The
+numbered list of *cited* entries is emitted wherever you place a
+`<!-- references -->` marker — uncited entries never render.
 
-By default the section is appended at the end. To pin it somewhere
-specific — for instance, before an appendix — drop a
-`<!-- references -->` marker on its own line in any input file and
-the section will render in place there instead. The shipped sample
-keeps that marker in its own one-line file
+The marker emits **only the entries**, never a heading. Author your
+own heading in markdown immediately before it so you control the
+text, language, and styling:
+
+```markdown
+# СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ
+
+<!-- references -->
+```
+
+The shipped sample keeps that two-line block in its own file,
 [`markdown/references.md`](markdown/references.md), wedged between
 [`conclusion.md`](markdown/conclusion.md) and
-[`appendix_a.md`](markdown/appendix_a.md), so the references land
-between ЗАКЛЮЧЕНИЕ and ПРИЛОЖЕНИЕ А without polluting either file.
+[`appendix_a.md`](markdown/appendix_a.md) so the list lands between
+ЗАКЛЮЧЕНИЕ and ПРИЛОЖЕНИЕ А. The heading picks up its centered styling
+because `СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ` is listed under
+`[render] centered_headings` in `autodocx.toml` — no special-case code
+in the renderer.
+
+If your markdown has citations but no marker, autodocx logs a warning
+at build time and skips the list (the inline `[N]` numbers still resolve
+in the body text).
 
 Supported entry types and the fields each one consumes:
 
