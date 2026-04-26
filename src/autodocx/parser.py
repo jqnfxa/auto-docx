@@ -33,7 +33,7 @@ _RE_TABLE_SEP_CELL = re.compile(r"^:?-{2,}:?$")
 
 INDENT_SPACES_PER_LEVEL = 2
 
-# Configurable label prefixes for figure/table captions. 
+# Configurable label prefixes for figure/table captions.
 # Pass overrides via parse_md if needed.
 DEFAULT_TABLE_LABEL = "Таблица"
 DEFAULT_FIGURE_LABEL = "Рисунок"
@@ -211,10 +211,7 @@ class _Breakers:
 
     def matches(self, text: str) -> bool:
         return (
-            text.startswith("#")
-            or text.startswith("|")
-            or text.startswith(self.table_label)
-            or text.startswith(self.figure_label)
+            text.startswith(("#", "|", self.table_label, self.figure_label))
             or _RE_CONTINUATION.match(text) is not None
             or _RE_LIST_ITEM_PARAGRAPH_BREAKER.match(text) is not None
             or text in ("<!-- toc -->", "<!-- references -->")

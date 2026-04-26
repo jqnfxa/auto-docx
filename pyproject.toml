@@ -51,7 +51,45 @@ include = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+src = ["src"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+select = ["ALL"]
+ignore = [
+    # We deliberately use print() as the build-progress channel.
+    "T201",
+    # Russian text and GOST-required punctuation (С., Т., №) trip the
+    # ambiguous-unicode lint; the strings are intentional.
+    "RUF001", "RUF002", "RUF003",
+    # Conflicts with ruff format: trailing-comma rule + missing-trailing-comma rule.
+    "COM812",
+    # Docstrings are useful where useful; we don't want one on every
+    # private helper, dataclass __init__, or module __init__.
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+    # Error-message style rules — we like in-place messages.
+    "TRY003", "EM101", "EM102",
+    # Magic values are fine for one-off constants (font size, border width).
+    "PLR2004",
+    # The parser, pipeline, and CLI are intrinsically branchy; cyclomatic
+    # / argument / statement caps just add noise.
+    "C901", "PLR0912", "PLR0913", "PLR0915",
+    # XML / subprocess hardening — we control the inputs (template.docx,
+    # pandoc command line) and trust them.
+    "S314", "S603", "S607",
+    # PandocUnavailable is intentionally not "*Error".
+    "N818",
+    # Boolean keyword args (bold=, italic=, page_break=, …) are core API.
+    "FBT001", "FBT002",
+    # ns.register_namespaces() guards against double-registration via a
+    # module-level flag — global statement is correct here.
+    "PLW0603",
+    # subprocess.run without check=True is intentional: we read returncode
+    # ourselves so we can fall back to plain text on pandoc failure.
+    "PLW1510",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/autodocx/__init__.py" = ["F401"]  # re-exports
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

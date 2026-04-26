@@ -6,15 +6,20 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import zipfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from autodocx.citations import CitationResolver
-from autodocx.config import BuildConfig
 from autodocx.formulas import FormulaConverter
 from autodocx.header import HeaderAssets, extract_header_body
-from autodocx.ns import CT, R_IMG, RELS, w_tag
+from autodocx.ns import CT, R_IMG, RELS, R, w_tag
 from autodocx.parser import parse_md_text
 from autodocx.renderer import RenderContext, render_blocks
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from autodocx.config import BuildConfig
+    from autodocx.images import ImageRegistry
 
 _STATS_VARS = ("n_pages", "n_figures", "n_tables", "n_sources")
 _RE_FIGURE_LINE = re.compile(r"^!\[", re.MULTILINE)
@@ -87,7 +92,10 @@ def build_document(config: BuildConfig) -> Path:
     )
 
     print(f"Built: {config.output}")
-    print("NOTE: Open in Word/LibreOffice and press Ctrl+A then F9 to refresh TOC and page numbers.")
+    print(
+        "NOTE: Open in Word/LibreOffice and press Ctrl+A then F9 "
+        "to refresh TOC and page numbers."
+    )
     return config.output
 
 
@@ -99,9 +107,7 @@ def _validate_inputs(config: BuildConfig) -> None:
     missing: list[Path] = []
     if not config.template.exists():
         missing.append(config.template)
-    for p in config.inputs:
-        if not p.exists():
-            missing.append(p)
+    missing.extend(p for p in config.inputs if not p.exists())
     if config.header and not config.header.exists():
         missing.append(config.header)
     if config.bibliography and not config.bibliography.exists():
@@ -131,7 +137,7 @@ def _render_all_inputs(
     config: BuildConfig,
 ) -> list[ET.Element]:
     elements: list[ET.Element] = []
-    for idx, (path, text) in enumerate(sources):
+    for idx, (_path, text) in enumerate(sources):
         blocks = parse_md_text(
             text,
             table_label=config.table_label,
@@ -173,7 +179,7 @@ def _write_output(
     output: Path,
     elements: list[ET.Element],
     header: HeaderAssets,
-    registry,
+    registry: ImageRegistry,
 ) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(template, output)
@@ -227,7 +233,7 @@ def _splice_body(doc_xml: bytes, elements: list[ET.Element]) -> str:
     return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
 
-def _extend_rels(rels_xml: bytes, registry, header: HeaderAssets) -> str:
+def _extend_rels(rels_xml: bytes, registry: ImageRegistry, header: HeaderAssets) -> str:
     rels_root = ET.fromstring(rels_xml)
     ET.register_namespace("", RELS)
 
@@ -253,8 +259,7 @@ def _rewrite_header_rids(
     if not header_rels:
         return
     rid_map = {old: _prefix_rid(old) for old in header_rels}
-    r_ns = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-    targets = (f"{{{r_ns}}}embed", f"{{{r_ns}}}id", f"{{{r_ns}}}link")
+    targets = (f"{{{R}}}embed", f"{{{R}}}id", f"{{{R}}}link")
     for el in elements:
         for sub in el.iter():
             for attr in targets:

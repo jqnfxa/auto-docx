@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING
 
 from autodocx.ns import w_tag
 from autodocx.runs import make_run
+
+if TYPE_CHECKING:
+    from autodocx.formulas import FormulaConverter
 
 DEFAULT_CELL_STYLE = "Style13"
 DEFAULT_TABLE_WIDTH = 9000  # ~6.25 inches
@@ -21,7 +25,12 @@ def _split_cells(line: str) -> list[str]:
     return [c.strip() for c in cells]
 
 
-def _make_cell_content(text: str, formulas=None, *, bold: bool = False) -> list[ET.Element]:
+def _make_cell_content(
+    text: str,
+    formulas: FormulaConverter | None = None,
+    *,
+    bold: bool = False,
+) -> list[ET.Element]:
     """Build paragraph children for a cell, routing math through pandoc."""
     text = text.replace("---", "—").replace("--", "—")
     if formulas is not None and formulas.has_math(text):
@@ -29,9 +38,7 @@ def _make_cell_content(text: str, formulas=None, *, bold: bool = False) -> list[
         if result:
             children: list[ET.Element] = []
             for p in result:
-                for child in list(p):
-                    if child.tag != w_tag("pPr"):
-                        children.append(child)
+                children.extend(child for child in p if child.tag != w_tag("pPr"))
             return children
     return [make_run(text, bold=bold)]
 
@@ -46,7 +53,13 @@ def _add_borders(tpr: ET.Element) -> None:
         b.set(w_tag("color"), "000000")
 
 
-def _build_cell(text: str, formulas, *, align: str, bold: bool) -> ET.Element:
+def _build_cell(
+    text: str,
+    formulas: FormulaConverter | None,
+    *,
+    align: str,
+    bold: bool,
+) -> ET.Element:
     tc = ET.Element(w_tag("tc"))
     p = ET.SubElement(tc, w_tag("p"))
     ppr = ET.SubElement(p, w_tag("pPr"))
@@ -59,7 +72,7 @@ def _build_cell(text: str, formulas, *, align: str, bold: bool) -> ET.Element:
 
 def build_table(
     lines: list[str],
-    formulas=None,
+    formulas: FormulaConverter | None = None,
     *,
     table_width: int = DEFAULT_TABLE_WIDTH,
 ) -> ET.Element | None:

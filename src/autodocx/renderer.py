@@ -6,15 +6,18 @@ import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from autodocx.citations import CitationResolver
-from autodocx.formulas import FormulaConverter
 from autodocx.images import ImageRegistry, make_image_paragraph
 from autodocx.ns import w_tag
-from autodocx.parser import Block
 from autodocx.runs import make_paragraph, make_run, parse_inline
 from autodocx.tables import build_table
 from autodocx.toc import build_toc_sdt
+
+if TYPE_CHECKING:
+    from autodocx.citations import CitationResolver
+    from autodocx.formulas import FormulaConverter
+    from autodocx.parser import Block
 
 _RE_NUMBERED_ITEM = re.compile(r"^(\d+\.\s+)(.*)$", re.DOTALL)
 
@@ -118,14 +121,14 @@ def render_blocks(
             elements.extend(_render_image(data, ctx))
         elif kind == "toc_marker":
             elements.append(build_toc_sdt())
-        elif kind == "references_marker":
-            if (
-                not ctx.references_rendered
-                and ctx.citer is not None
-                and ctx.citer.cited_keys
-            ):
-                elements.extend(build_references_entries(ctx.citer))
-                ctx.references_rendered = True
+        elif (
+            kind == "references_marker"
+            and not ctx.references_rendered
+            and ctx.citer is not None
+            and ctx.citer.cited_keys
+        ):
+            elements.extend(build_references_entries(ctx.citer))
+            ctx.references_rendered = True
 
     return elements
 

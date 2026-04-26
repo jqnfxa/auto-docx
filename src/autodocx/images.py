@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-import os
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PIL import Image as PILImage
 
-from autodocx.ns import A, PIC, R, WP, w_tag
+from autodocx.ns import PIC, WP, A, R, w_tag
 from autodocx.runs import make_paragraph, make_run
+
+if TYPE_CHECKING:
+    import os
 
 # Default text-area width (165mm) and a reasonable upper bound on height.
 DEFAULT_MAX_WIDTH_EMU = 5_940_000

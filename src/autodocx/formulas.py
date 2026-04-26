@@ -6,12 +6,12 @@ inside a throwaway .docx, which we unzip and graft into our own document.
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
+from pathlib import Path
 
 from autodocx.ns import M, w_tag
 
@@ -61,7 +61,7 @@ def pandoc_md_to_omml(md_text: str) -> list[ET.Element] | None:
         with zipfile.ZipFile(tmp_path) as z, z.open("word/document.xml") as f:
             doc_xml = f.read().decode()
     finally:
-        os.unlink(tmp_path)
+        Path(tmp_path).unlink()
 
     body = ET.fromstring(doc_xml).find(w_tag("body"))
     if body is None:
@@ -114,9 +114,9 @@ class FormulaConverter:
 
 __all__ = [
     "FormulaConverter",
+    "M",
     "PandocUnavailable",
     "has_math",
     "is_display_math",
     "pandoc_md_to_omml",
-    "M",
 ]

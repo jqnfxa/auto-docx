@@ -5,9 +5,12 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from autodocx.ns import CT, RELS, w_tag
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass
@@ -53,21 +56,19 @@ def extract_header_body(header_path: Path) -> HeaderAssets:
         for name in z.namelist():
             if name in _SKIP_PARTS:
                 continue
-            if name.startswith("word/theme/") or name.startswith("docProps/"):
+            if name.startswith(("word/theme/", "docProps/")):
                 continue
             if name.startswith("_rels/") or name == "[Content_Types].xml":
                 continue
             if name.startswith("word/media/"):
                 media[name] = z.read(name)
-            elif name.startswith("word/") or name.startswith("customXml/"):
+            elif name.startswith(("word/", "customXml/")):
                 extras[name] = z.read(name)
 
     elements: list[ET.Element] = []
     body = ET.fromstring(doc_xml).find(w_tag("body"))
     if body is not None:
-        for child in body:
-            if child.tag != w_tag("sectPr"):
-                elements.append(child)
+        elements.extend(child for child in body if child.tag != w_tag("sectPr"))
 
     rels: dict[str, dict[str, str]] = {}
     if rels_xml is not None:
