@@ -5,11 +5,43 @@ from __future__ import annotations
 import re
 from collections import OrderedDict
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-_RE_ENTRY = re.compile(r"@(\w+)\{(\w+),\s*(.*?)\n\}", re.DOTALL)
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+_RE_ENTRY_HEADER = re.compile(r"@(\w+)\s*\{\s*(\w+)\s*,", re.DOTALL)
 _RE_FIELD = re.compile(r'(\w+)\s*=\s*(?:\{(.+?)\}|"(.+?)"|(\w+))', re.DOTALL)
 _RE_CITE_GROUP = re.compile(r"\[@([\w;@\s,\.]+?)\]")
 _RE_CITE_KEY = re.compile(r"(\w+)(.*)")
+
+
+def _iter_entries(content: str) -> Iterator[tuple[str, str, str]]:
+    r"""Yield ``(entry_type, key, body)`` tuples by walking balanced braces.
+
+    Handles both multi-line and single-line ``@type{key, …}`` entries by
+    counting brace depth, so a single-line entry like ``@online{a, t = {x}}``
+    parses just as cleanly as the indented multi-line shape.
+    """
+    pos = 0
+    while True:
+        m = _RE_ENTRY_HEADER.search(content, pos)
+        if m is None:
+            return
+        depth = 1
+        i = m.end()
+        body_start = i
+        while i < len(content) and depth > 0:
+            ch = content[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+            i += 1
+        if depth != 0:
+            return
+        yield m.group(1), m.group(2), content[body_start : i - 1]
+        pos = i
 
 
 class CitationResolver:
@@ -82,10 +114,7 @@ def _split_refs(group: str) -> list[str]:
 def _parse_bib(path: Path) -> dict[str, str]:
     content = path.read_text(encoding="utf-8")
     entries: dict[str, str] = {}
-    for m in _RE_ENTRY.finditer(content):
-        entry_type = m.group(1)
-        key = m.group(2)
-        body = m.group(3)
+    for entry_type, key, body in _iter_entries(content):
         fields: dict[str, str] = {}
         for fm in _RE_FIELD.finditer(body):
             fname = fm.group(1)
