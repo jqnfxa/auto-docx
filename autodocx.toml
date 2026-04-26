@@ -13,6 +13,7 @@ files = [
     "markdown/1.md",
     "markdown/conclusion.md",
 ]
+bibliography = "markdown/reference.bib"
 
 [render]
 title_pages = ["РЕФЕРАТ", "ABSTRACT", "СОДЕРЖАНИЕ"]
