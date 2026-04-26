@@ -1,4 +1,4 @@
-# AutoDocx
+# auto-docx
 
 Render Markdown into a styled `.docx` using a Word template.
 
