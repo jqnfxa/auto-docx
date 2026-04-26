@@ -9,13 +9,16 @@ fonts and section properties from the template.
 
 ## Features
 
-- Markdown headings → `Heading2`/`Heading3` with configurable centered
-  / "title page" overrides.
-- Pipe-tables with auto-repeating headers across page breaks.
+- Markdown headings (`#`/`##`/`###`) → `Heading2` / `Heading3` / `Heading4`
+  with configurable centered / "title page" overrides.
+- Pipe-tables in both bordered (`| h | h |`) and bare (`h | h`) styles, with
+  auto-repeating header rows across page breaks.
 - Inline images via `![caption](path)` with auto-numbered figure captions.
+- Nested bullets (`-` / `*`) — three levels of markers (`•`, `○`, `▪`) at
+  1.25 cm-per-level indents.
 - BibTeX-flavored citations: `[@key]` → `[N]`, `[@key, p. 84]` → `[N, с. 84]`.
 - LaTeX math `$x$` / `$$x$$` rendered through `pandoc` into native OOXML.
-- Auto-updating `СОДЕРЖАНИЕ` / TOC field via `<!-- toc -->`.
+- Auto-updating TOC field via the `<!-- toc -->` marker.
 - Optional `header.docx` prepended for title pages, task pages, etc.
 - Stats template variables: `{{n_pages}}`, `{{n_figures}}`, `{{n_tables}}`,
   `{{n_sources}}`.
@@ -34,7 +37,7 @@ uv venv
 uv pip install git+https://github.com/jqnfxa/AutoDocx
 ```
 
-Activate the venv (`source .venv/bin/activate.fish`) and run `autodocx --help`.
+Activate the venv and run `autodocx --help`.
 
 For local development:
 
@@ -105,7 +108,6 @@ centered_headings = [
     "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ",
 ]
 references_heading = "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ"
-toc_heading = "СОДЕРЖАНИЕ"
 figure_label = "Рисунок"
 table_label = "Таблица"
 
@@ -128,10 +130,11 @@ from the TOML file.
 | ----------------------------------- | -------------------------------------------------- |
 | `# Title`                           | `Heading2` paragraph                               |
 | `## Section`                        | `Heading3` paragraph                               |
+| `### Subsection`                    | `Heading4` paragraph                               |
 | `**bold**`                          | bold run                                           |
-| `- item`                            | bullet                                             |
+| `- item` / `  - nested`             | bulleted paragraph; 2-space indent steps the level |
 | `1. item`                           | numbered list item (manual prefix)                 |
-| `\| h1 \| h2 \|` + sep + rows       | borders, repeating header `w:tbl`                  |
+| `\| h \| h \|` or `h \| h` + sep    | borders, repeating header `w:tbl`                  |
 | `![caption](path)`                  | inline image + auto-numbered figure caption        |
 | `Таблица 3 — caption`               | left-aligned table caption (`Style14`)             |
 | `Рисунок 5 — caption`               | centered figure caption (`Style15`)                |
