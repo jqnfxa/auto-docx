@@ -56,6 +56,13 @@ class RenderContext:
     # the bibliography list, so the pipeline can detect "cited but not
     # rendered" and warn.
     references_rendered: bool = False
+    # Set to True after a numbered display formula that ends with `,` or
+    # `;` (i.e. continues the surrounding sentence). The next paragraph
+    # consumes the flag and renders without its first-line indent — this
+    # matches the Russian academic convention where the post-formula
+    # "где: …" line is the continuation of the introducing sentence, not
+    # a new thought.
+    next_paragraph_no_first_indent: bool = False
 
     def is_title_page(self, heading: str) -> bool:
         return heading.strip() in self.title_pages
@@ -96,6 +103,15 @@ def render_blocks(
     seen_h2 = False
 
     for kind, data in blocks:
+        # The continuation flag is consumed by the very next block
+        # regardless of kind, but only changes the visual indent when
+        # that block is a paragraph. Anything else (bullet, heading,
+        # table, image, …) breaks the continuation silently.
+        suppress_first_indent = (
+            ctx.next_paragraph_no_first_indent and kind == "paragraph"
+        )
+        ctx.next_paragraph_no_first_indent = False
+
         if kind == "heading2":
             page_break = (
                 page_break_each_heading and (seen_h2 or page_break_first_heading)
@@ -109,7 +125,11 @@ def render_blocks(
         elif kind == "heading4":
             elements.append(make_paragraph("Heading4", [make_run(data, bold=True)]))
         elif kind == "paragraph":
-            elements.extend(_render_text("BodyText", data, ctx))
+            para_elements = _render_text("BodyText", data, ctx)
+            if suppress_first_indent:
+                for el in para_elements:
+                    _suppress_first_line_indent(el)
+            elements.extend(para_elements)
         elif kind == "bullet":
             elements.extend(_render_bullet(data, ctx))
         elif kind == "list_item":
@@ -284,7 +304,25 @@ def _try_render_numbered_display_math(
     para.append(tab_after)
     para.append(make_run(f"({number})"))
 
+    if punct in (",", ";"):
+        ctx.next_paragraph_no_first_indent = True
+
     return [para]
+
+
+def _suppress_first_line_indent(para: ET.Element) -> None:
+    """Override a paragraph's first-line indent to 0 (flush-left start)."""
+    if para.tag != w_tag("p"):
+        return
+    ppr = para.find(w_tag("pPr"))
+    if ppr is None:
+        ppr = ET.Element(w_tag("pPr"))
+        para.insert(0, ppr)
+    for existing in ppr.findall(w_tag("ind")):
+        ppr.remove(existing)
+    ind = ET.SubElement(ppr, w_tag("ind"))
+    ind.set(w_tag("left"), "0")
+    ind.set(w_tag("firstLine"), "0")
 
 
 def _apply_alignment(paragraphs: list[ET.Element], align: str) -> None:
