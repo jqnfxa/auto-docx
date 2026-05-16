@@ -25,7 +25,11 @@ fonts and section properties from the template.
 - Nested bullets (`-` / `*`) — three levels of markers (`•`, `○`, `▪`) at
   1.25 cm-per-level indents.
 - BibTeX-flavored citations: `[@key]` → `[N]`, `[@key, p. 84]` → `[N, с. 84]`.
-- LaTeX math `$x$` / `$$x$$` rendered through `pandoc` into native OOXML.
+- LaTeX math `$x$` / `$$x$$` rendered through `pandoc` into native OOXML,
+  supported in body text, table cells, and bullet items.
+- Numbered display formulas via `$$x$$ (N)` / `$$x$$ (N),` / `$$x$$ (N).` —
+  formula centered, `(N)` right-aligned via tab stops, trailing punctuation
+  glued to the formula.
 - Auto-updating TOC field via the `<!-- toc -->` marker.
 - Optional `header.docx` prepended for title pages, task pages, etc.
 - Stats template variables: `{{n_pages}}`, `{{n_figures}}`, `{{n_tables}}`,
@@ -182,7 +186,8 @@ After building, open `output.docx` in Word or LibreOffice and press
 | `Таблица 3 — caption`               | left-aligned table caption (`Style14`)             |
 | `Рисунок 5 — caption`               | centered figure caption (`Style15`)                |
 | `[@key]` / `[@k1; @k2]` / `[@k, p. 84]` | citation(s) resolved against the bib (`[N]`, `[N, с. 84]`) |
-| `$x$`, `$$x$$`                      | OMML formula (requires `pandoc`)                   |
+| `$x$`, `$$x$$`                      | OMML formula (requires `pandoc`); works in body text, table cells, and bullet items |
+| `$$x$$ (N)` / `$$x$$ (N),` / `$$x$$ (N).` | numbered display formula: centered with `(N)` right-aligned via tab stops; trailing `,` or `.` glued to the formula |
 | `<!-- toc -->`                      | auto-updating TOC field                            |
 | `<!-- references -->`               | emit the numbered bibliography list at this point   |
 | `{{n_pages}}` / `{{n_figures}}` …   | substituted with computed counts before parsing    |
