@@ -21,6 +21,20 @@ if TYPE_CHECKING:
 
 _RE_NUMBERED_ITEM = re.compile(r"^(\d+\.\s+)(.*)$", re.DOTALL)
 
+# Numbered display math: `$$math$$ (N)` or `$$math$$ (N),` / `$$math$$ (N).`
+# When matched, the formula is rendered centered via tab stops and the
+# `(N)` floats to the right margin; the trailing punctuation (if any) is
+# appended to the math content so it stays glued to the formula.
+_RE_NUMBERED_DISPLAY_MATH = re.compile(
+    r"^\s*\$\$(?P<math>.+?)\$\$\s*\((?P<num>\d+)\)(?P<punct>[.,;:]?)\s*$",
+    re.DOTALL,
+)
+
+# Tab-stop positions for the centered-formula / right-aligned-number layout.
+# A4 with the template's margins gives ~9072 twips of usable text width.
+FORMULA_CENTER_TAB_TWIPS = 4536
+FORMULA_RIGHT_TAB_TWIPS = 9072
+
 # Per template: each list level adds 1.25 cm (≈ 709 twips) to the left indent.
 BULLET_INDENT_PER_LEVEL_TWIPS = 709
 BULLET_MARKERS = ("•", "○", "▪", "·")
@@ -97,7 +111,7 @@ def render_blocks(
         elif kind == "paragraph":
             elements.extend(_render_text("BodyText", data, ctx))
         elif kind == "bullet":
-            elements.append(_render_bullet(data, ctx))
+            elements.extend(_render_bullet(data, ctx))
         elif kind == "list_item":
             elements.extend(_render_list_item(data, ctx))
         elif kind == "table_caption":
@@ -167,12 +181,110 @@ def _render_text(
     """Render a single line of body text. Routes through pandoc when math is present."""
     text = _resolve(text, ctx)
     if ctx.formulas is not None and ctx.formulas.has_math(text):
+        numbered = _try_render_numbered_display_math(style, text, ctx)
+        if numbered is not None:
+            return numbered
         result = ctx.formulas.convert_paragraph(text, style_id=style)
         if result:
             if align is not None:
                 _apply_alignment(result, align)
             return list(result)
     return [make_paragraph(style, parse_inline(text), align=align)]
+
+
+def _try_render_numbered_display_math(
+    style: str,
+    text: str,
+    ctx: RenderContext,
+) -> list[ET.Element] | None:
+    """If ``text`` is ``$$math$$ (N)`` (optionally + ``,`` or ``.``), render it
+    as a centered formula with the number right-aligned via tab stops.
+
+    Returns ``None`` if the pattern doesn't match or pandoc fails.
+    """
+    m = _RE_NUMBERED_DISPLAY_MATH.match(text)
+    if m is None or ctx.formulas is None:
+        return None
+
+    inner = m.group("math").strip()
+    number = m.group("num")
+    punct = m.group("punct")
+
+    rendered = ctx.formulas.convert_paragraph(f"$${inner}$$", style_id=style)
+    if not rendered:
+        return None
+
+    para = rendered[0]
+    ppr = para.find(w_tag("pPr"))
+    if ppr is None:
+        ppr = ET.Element(w_tag("pPr"))
+        para.insert(0, ppr)
+
+    # Clear inherited centering (we'll center via tab stops instead) and any
+    # existing first-line indent so the layout starts flush left.
+    for jc in ppr.findall(w_tag("jc")):
+        ppr.remove(jc)
+    for ind in ppr.findall(w_tag("ind")):
+        ppr.remove(ind)
+    for tabs in ppr.findall(w_tag("tabs")):
+        ppr.remove(tabs)
+    ind = ET.SubElement(ppr, w_tag("ind"))
+    ind.set(w_tag("left"), "0")
+    ind.set(w_tag("firstLine"), "0")
+    tabs = ET.SubElement(ppr, w_tag("tabs"))
+    # Clear the BodyText style's inherited left tab at 709 twips, otherwise
+    # the leading <w:tab/> jumps there instead of to our center tab.
+    clear_tab = ET.SubElement(tabs, w_tag("tab"))
+    clear_tab.set(w_tag("val"), "clear")
+    clear_tab.set(w_tag("pos"), "709")
+    center_tab = ET.SubElement(tabs, w_tag("tab"))
+    center_tab.set(w_tag("val"), "center")
+    center_tab.set(w_tag("pos"), str(FORMULA_CENTER_TAB_TWIPS))
+    right_tab = ET.SubElement(tabs, w_tag("tab"))
+    right_tab.set(w_tag("val"), "right")
+    right_tab.set(w_tag("pos"), str(FORMULA_RIGHT_TAB_TWIPS))
+
+    # Pandoc wraps display math in m:oMathPara, inline math in bare m:oMath.
+    # Either is fine for us — we extract the inner m:oMath and insert it
+    # directly into the paragraph so the paragraph's tab stops can apply.
+    omath_para = next(
+        (c for c in para if c.tag.endswith("}oMathPara")),
+        None,
+    )
+    if omath_para is not None:
+        omath = next(
+            (c for c in omath_para if c.tag.endswith("}oMath")),
+            None,
+        )
+    else:
+        omath = next(
+            (c for c in para if c.tag.endswith("}oMath")),
+            None,
+        )
+    if omath is None:
+        return None
+
+    # Strip everything except pPr; we'll rebuild the post-math layout from
+    # scratch.
+    for c in list(para):
+        if c is ppr:
+            continue
+        para.remove(c)
+
+    tab_before = ET.Element(w_tag("r"))
+    ET.SubElement(tab_before, w_tag("tab"))
+    para.append(tab_before)
+    para.append(omath)
+
+    if punct:
+        para.append(make_run(punct))
+
+    tab_after = ET.Element(w_tag("r"))
+    ET.SubElement(tab_after, w_tag("tab"))
+    para.append(tab_after)
+    para.append(make_run(f"({number})"))
+
+    return [para]
 
 
 def _apply_alignment(paragraphs: list[ET.Element], align: str) -> None:
@@ -221,7 +333,7 @@ def _render_list_item(data: str, ctx: RenderContext) -> list[ET.Element]:
     return [make_paragraph("BodyText", parse_inline(prefix + rest))]
 
 
-def _render_bullet(data: tuple[int, str], ctx: RenderContext) -> ET.Element:
+def _render_bullet(data: tuple[int, str], ctx: RenderContext) -> list[ET.Element]:
     """Render a bullet item at the given nesting level.
 
     Each level adds 1.25 cm of left margin and rotates through ``•``/``○``/``▪``
@@ -230,13 +342,36 @@ def _render_bullet(data: tuple[int, str], ctx: RenderContext) -> ET.Element:
     level, text = data
     marker = BULLET_MARKERS[level % len(BULLET_MARKERS)]
     indent = (level + 1) * BULLET_INDENT_PER_LEVEL_TWIPS
-    body = parse_inline(f"{marker}  {_resolve(text, ctx)}")
-    return make_paragraph(
+    resolved = _resolve(text, ctx)
+
+    if ctx.formulas is not None and ctx.formulas.has_math(resolved):
+        result = ctx.formulas.convert_paragraph(resolved, style_id="BodyText")
+        if result and result[0].tag == w_tag("p"):
+            ppr = result[0].find(w_tag("pPr"))
+            if ppr is None:
+                ppr = ET.Element(w_tag("pPr"))
+                result[0].insert(0, ppr)
+            for npr in ppr.findall(w_tag("numPr")):
+                ppr.remove(npr)
+            for ind_existing in ppr.findall(w_tag("ind")):
+                ppr.remove(ind_existing)
+            ind = ET.SubElement(ppr, w_tag("ind"))
+            ind.set(w_tag("left"), str(indent))
+            ind.set(w_tag("firstLine"), "0")
+            insert_idx = next(
+                (i for i, c in enumerate(list(result[0])) if c.tag != w_tag("pPr")),
+                len(list(result[0])),
+            )
+            result[0].insert(insert_idx, make_run(f"{marker}  "))
+            return list(result)
+
+    body = parse_inline(f"{marker}  {resolved}")
+    return [make_paragraph(
         "BodyText",
         body,
         ind_left=indent,
         ind_first_line=0,
-    )
+    )]
 
 
 def _render_image(data: tuple[str, str], ctx: RenderContext) -> list[ET.Element]:
